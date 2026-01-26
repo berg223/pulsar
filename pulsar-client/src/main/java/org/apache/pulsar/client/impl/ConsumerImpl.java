@@ -1294,7 +1294,8 @@ public class ConsumerImpl<T> extends ConsumerBase<T> implements ConnectionHandle
                                                   final long consumerEpoch,
                                                   final boolean isEncrypted) {
         if (log.isDebugEnabled()) {
-            log.debug("[{}] [{}] processing message num - {} in batch", subscription, consumerName, index);
+            log.debug("[{}] [{}] processing message num - {} in batch, messageId {}", subscription, consumerName, index,
+                    messageId);
         }
 
         ByteBuf singleMessagePayload = null;
@@ -1317,10 +1318,16 @@ public class ConsumerImpl<T> extends ConsumerBase<T> implements ConnectionHandle
 
             if (singleMessageMetadata != null && singleMessageMetadata.isCompactedOut()) {
                 // message has been compacted out, so don't send to the user
+                if (log.isDebugEnabled()) {
+                    log.debug("[{}] [{}] Ignoring message compacted out: {}", subscription, consumerName, messageId);
+                }
                 return null;
             }
 
             if (isSingleMessageAcked(ackBitSet, index)) {
+                if (log.isDebugEnabled()) {
+                    log.debug("[{}] [{}] Ignoring message already acked: {}", subscription, consumerName, messageId);
+                }
                 return null;
             }
 
@@ -1813,6 +1820,10 @@ public class ConsumerImpl<T> extends ConsumerBase<T> implements ConnectionHandle
                     }
                 }
                 if (acknowledgmentsGroupingTracker.isDuplicate(message.getMessageId())) {
+                    if (log.isDebugEnabled()) {
+                        log.debug("[{}] [{}] Skip duplicate message {}, batchIndex {}", subscription, consumerName,
+                                message.getMessageId(), i);
+                    }
                     skippedMessages++;
                     continue;
                 }

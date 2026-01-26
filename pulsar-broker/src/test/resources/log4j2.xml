@@ -23,7 +23,7 @@
                xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
                xsi:schemaLocation="http://logging.apache.org/log4j/2.0/config https://logging.apache.org/log4j/2.0/log4j-core.xsd">
   <Properties>
-    <Property name="pulsar.test.logging.appender" value="CONSOLE"/>
+    <Property name="pulsar.test.logging.appender" value="FILE"/>
     <Property name="pulsar.test.logging.file" value="target/pulsar.test.log"/>
     <Property name="pulsar.test.logging.file.immediateFlush" value="false"/>
   </Properties>
@@ -39,7 +39,7 @@
                  createOnDemand="true">
       <PatternLayout pattern="%d{ISO8601_OFFSET_DATE_TIME_HHMM} [%t] %-5level %logger{36} - %msg%n"/>
       <Policies>
-        <SizeBasedTriggeringPolicy size="10MB"/>
+        <SizeBasedTriggeringPolicy size="1000MB"/>
       </Policies>
     </RollingFile>
   </Appenders>
@@ -60,5 +60,8 @@
     <Logger name="org.apache.bookkeeper.mledger.impl.cache" level="DEBUG"/>
     <Logger name="org.apache.bookkeeper.mledger.util.RangeCache" level="DEBUG"/>
      -->
+    <Logger name="org.apache.pulsar.client.impl.ConsumerImpl" level="TRACE" />
+    <Logger name="org.apache.pulsar.common.protocol.Commands" level="TRACE" />
+    <Logger name="org.apache.pulsar.client.impl.PersistentAcknowledgmentsGroupingTracker" level="TRACE" />
   </Loggers>
 </Configuration>

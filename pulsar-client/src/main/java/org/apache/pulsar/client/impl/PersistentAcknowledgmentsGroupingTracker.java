@@ -123,6 +123,9 @@ public class PersistentAcknowledgmentsGroupingTracker implements Acknowledgments
         final MessageIdAdv messageIdAdv = (MessageIdAdv) messageId;
         if (lastCumulativeAck.compareTo(messageIdAdv) >= 0) {
             // Already included in a cumulative ack
+            if (log.isDebugEnabled()) {
+                log.debug("[{}] Already included in lastCumulativeAck messageId {}", consumer, messageId);
+            }
             return true;
         } else {
             // If "batchIndexAckEnabled" is false, the batched messages acknowledgment will be traced by
@@ -130,11 +133,24 @@ public class PersistentAcknowledgmentsGroupingTracker implements Acknowledgments
             // first.
             MessageIdAdv key = MessageIdAdvUtils.discardBatch(messageIdAdv);
             if (pendingIndividualAcks.contains(key)) {
+                if (log.isDebugEnabled()) {
+                    log.debug("[{}] Already included in pendingIndividualAcks messageId {}", consumer, messageId);
+                }
                 return true;
             }
             if (messageIdAdv.getBatchIndex() >= 0) {
+                if (log.isDebugEnabled()) {
+                    log.debug("[{}] Before pendingIndividualBatchIndexAcks messageId {}", consumer, messageId);
+                }
                 ConcurrentBitSetRecyclable bitSet = pendingIndividualBatchIndexAcks.get(key);
-                return bitSet != null && !bitSet.get(messageIdAdv.getBatchIndex());
+                if (log.isDebugEnabled()) {
+                    log.debug("[{}] After pendingIndividualBatchIndexAcks messageId {}", consumer, messageId);
+                }
+                boolean result = bitSet != null && !bitSet.get(messageIdAdv.getBatchIndex());
+                if (log.isDebugEnabled()) {
+                    log.debug("[{}] complete ackSet check messageId {} isEmpty {}", consumer, messageId, null != bitSet ? bitSet.isEmpty() : null);
+                }
+                return result;
             }
             return false;
         }
@@ -327,6 +343,9 @@ public class PersistentAcknowledgmentsGroupingTracker implements Acknowledgments
 
     @VisibleForTesting
     CompletableFuture<Void> doIndividualBatchAckAsync(MessageIdAdv msgId) {
+        if (log.isDebugEnabled()) {
+            log.debug("[{}] Before add individual batch ack for {}", consumer, msgId);
+        }
         ConcurrentBitSetRecyclable bitSet = pendingIndividualBatchIndexAcks.computeIfAbsent(
                 MessageIdAdvUtils.discardBatch(msgId), __ -> {
                     final BitSet ackSet = msgId.getAckSet();
@@ -346,6 +365,9 @@ public class PersistentAcknowledgmentsGroupingTracker implements Acknowledgments
                     }
                     return value;
                 });
+        if (log.isDebugEnabled()) {
+            log.debug("[{}] After add individual batch ack for {}", consumer, msgId);
+        }
         bitSet.clear(msgId.getBatchIndex());
         return CompletableFuture.completedFuture(null);
     }
@@ -487,18 +509,23 @@ public class PersistentAcknowledgmentsGroupingTracker implements Acknowledgments
         }
 
         while (true) {
+            if (log.isDebugEnabled()) {
+                log.debug("[{}] before poll pending batch index ack", consumer);
+            }
             Map.Entry<MessageIdAdv, ConcurrentBitSetRecyclable> entry =
                     pendingIndividualBatchIndexAcks.pollFirstEntry();
             if (entry == null) {
                 // The entry has been removed in a different thread
                 break;
             }
+            if (log.isDebugEnabled()) {
+                log.debug("[{}] polled pending batch index ack, messageId {}", consumer, entry.getKey());
+            }
             entriesToAck.add(Triple.of(
                     entry.getKey().getLedgerId(), entry.getKey().getEntryId(), entry.getValue()));
         }
 
         if (entriesToAck.size() > 0) {
-
             newMessageAckCommandAndWrite(cnx, consumer.consumerId, 0L, 0L,
                     null, AckType.Individual, null, true,
                     (TimedCompletableFuture<Void>) currentIndividualAckFuture, entriesToAck);

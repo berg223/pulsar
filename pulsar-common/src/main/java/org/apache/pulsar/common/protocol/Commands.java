@@ -1061,7 +1061,13 @@ public class Commands {
                 for (int j = 0; j < ackSet.length; j++) {
                     msgId.addAckSet(ackSet[j]);
                 }
+                if (log.isDebugEnabled()) {
+                    log.debug("before recycle {}:{}", ledgerId, entryId);
+                }
                 bitSet.recycle();
+                if (log.isDebugEnabled()) {
+                    log.debug("after recycle {}:{}", ledgerId, entryId);
+                }
             }
         }
 
