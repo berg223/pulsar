@@ -60,8 +60,7 @@
     <Logger name="org.apache.bookkeeper.mledger.impl.cache" level="DEBUG"/>
     <Logger name="org.apache.bookkeeper.mledger.util.RangeCache" level="DEBUG"/>
      -->
-    <Logger name="org.apache.pulsar.client.impl.ConsumerImpl" level="TRACE" />
+    <Logger name="org.apache.pulsar.client" level="TRACE" />
     <Logger name="org.apache.pulsar.common.protocol.Commands" level="TRACE" />
-    <Logger name="org.apache.pulsar.client.impl.PersistentAcknowledgmentsGroupingTracker" level="TRACE" />
   </Loggers>
 </Configuration>

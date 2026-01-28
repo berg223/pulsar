@@ -142,15 +142,18 @@ public class PersistentAcknowledgmentsGroupingTracker implements Acknowledgments
                 if (log.isDebugEnabled()) {
                     log.debug("[{}] Before pendingIndividualBatchIndexAcks messageId {}", consumer, messageId);
                 }
-                ConcurrentBitSetRecyclable bitSet = pendingIndividualBatchIndexAcks.get(key);
-                if (log.isDebugEnabled()) {
-                    log.debug("[{}] After pendingIndividualBatchIndexAcks messageId {}", consumer, messageId);
+                synchronized (pendingIndividualBatchIndexAcks) {
+                    ConcurrentBitSetRecyclable bitSet = pendingIndividualBatchIndexAcks.get(key);
+                    if (log.isDebugEnabled()) {
+                        log.debug("[{}] After pendingIndividualBatchIndexAcks messageId {}", consumer, messageId);
+                    }
+                    boolean result = bitSet != null && !bitSet.get(messageIdAdv.getBatchIndex());
+                    if (log.isDebugEnabled()) {
+                        log.debug("[{}] complete ackSet check messageId {} isEmpty {}", consumer, messageId,
+                                null != bitSet ? bitSet.isEmpty() : null);
+                    }
+                    return result;
                 }
-                boolean result = bitSet != null && !bitSet.get(messageIdAdv.getBatchIndex());
-                if (log.isDebugEnabled()) {
-                    log.debug("[{}] complete ackSet check messageId {} isEmpty {}", consumer, messageId, null != bitSet ? bitSet.isEmpty() : null);
-                }
-                return result;
             }
             return false;
         }
@@ -291,7 +294,10 @@ public class PersistentAcknowledgmentsGroupingTracker implements Acknowledgments
 
     private CompletableFuture<Void> doIndividualAckAsync(MessageIdAdv messageId) {
         pendingIndividualAcks.add(messageId);
-        pendingIndividualBatchIndexAcks.remove(messageId);
+        ConcurrentBitSetRecyclable removed = pendingIndividualBatchIndexAcks.remove(messageId);
+        if (null != removed) {
+            removed.recycle();
+        }
         return CompletableFuture.completedFuture(null);
     }
 
@@ -512,8 +518,10 @@ public class PersistentAcknowledgmentsGroupingTracker implements Acknowledgments
             if (log.isDebugEnabled()) {
                 log.debug("[{}] before poll pending batch index ack", consumer);
             }
-            Map.Entry<MessageIdAdv, ConcurrentBitSetRecyclable> entry =
-                    pendingIndividualBatchIndexAcks.pollFirstEntry();
+            Map.Entry<MessageIdAdv, ConcurrentBitSetRecyclable> entry;
+            synchronized (pendingIndividualBatchIndexAcks) {
+                entry = pendingIndividualBatchIndexAcks.pollFirstEntry();
+            }
             if (entry == null) {
                 // The entry has been removed in a different thread
                 break;

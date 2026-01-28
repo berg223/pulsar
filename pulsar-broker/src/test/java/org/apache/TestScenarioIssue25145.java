@@ -32,8 +32,10 @@ public class TestScenarioIssue25145 {
 
     public static void main(String[] args) throws PulsarClientException, InterruptedException, PulsarAdminException {
         for (int i = 0; i < 1000; i++) {
+            long startTime = System.currentTimeMillis();
             runOnce();
-            System.out.println("passed check iteration " + i);
+            System.out.println("passed check iteration " + i + " costTime "
+                    + (System.currentTimeMillis() - startTime) / 1000 + " seconds");
             Thread.sleep(10_000);
             sentMessageIds.clear();
             receiptTracker.clear();
